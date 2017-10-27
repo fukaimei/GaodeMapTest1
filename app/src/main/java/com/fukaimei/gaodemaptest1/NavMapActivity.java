@@ -38,6 +38,7 @@ import com.amap.api.services.route.RideRouteResult;
 import com.amap.api.services.route.RouteSearch;
 import com.amap.api.services.route.RouteSearch.OnRouteSearchListener;
 import com.amap.api.services.route.WalkRouteResult;
+import com.fukaimei.gaodemaptest1.util.MapFixUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,14 +46,15 @@ import java.util.List;
 public class NavMapActivity extends Activity implements View.OnClickListener
         , OnGeocodeSearchListener, OnRouteSearchListener {
     private static final int WRITE_COARSE_LOCATION_REQUEST_CODE = 0;
+    private static final String TAG = "NavMapActivity";
+    GeocodeSearch search;
+    RouteSearch routeSearch;
+    Context context;
     private MapView mapView;
     private AMap aMap;
     private LocationManager locMgr;
-    GeocodeSearch search;
-    RouteSearch routeSearch;
     private EditText targetAddressEt;
     private Button navBn;
-    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +144,18 @@ public class NavMapActivity extends Activity implements View.OnClickListener
     }
 
     private void updatePosition(Location location) {
-        LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
+        // 纠偏前的经度
+        double lon = location.getLongitude();
+        // 纠偏前的纬度
+        double lat = location.getLatitude();
+        double point[] = MapFixUtil.transform(lat, lon);
+        // 纠偏后的经度
+        double correctLon = point[1];
+        // 纠偏后的纬度
+        double correctLat = point[0];
+//        Log.d(TAG, "纠偏前的经度：" + lon + ",纠偏前的纬度：" + lat);
+//        Log.d(TAG, "纠偏后的经度：" + correctLon + ",纠偏后的纬度：" + correctLat);
+        LatLng pos = new LatLng(correctLat, correctLon);
         // 创建一个设置经纬度的CameraUpdate
         CameraUpdate cu = CameraUpdateFactory.changeLatLng(pos);
         // 更新地图的显示区域
@@ -223,9 +236,20 @@ public class NavMapActivity extends Activity implements View.OnClickListener
         // 获取用户当前的位置
         Location loc = locMgr.getLastKnownLocation(
                 LocationManager.GPS_PROVIDER);
+        // 纠偏前的经度
+        double lon = loc.getLongitude();
+        // 纠偏前的纬度
+        double lat = loc.getLatitude();
+        double point[] = MapFixUtil.transform(lat, lon);
+        // 纠偏后的经度
+        double correctLon = point[1];
+        // 纠偏后的纬度
+        double correctLat = point[0];
+//        Log.d(TAG, "纠偏前的经度：" + lon + ",纠偏前的纬度：" + lat);
+//        Log.d(TAG, "纠偏后的经度：" + correctLon + ",纠偏后的纬度：" + correctLat);
         // 创建路线规划的起始点
         RouteSearch.FromAndTo ft = new RouteSearch.FromAndTo(
-                new LatLonPoint(loc.getLatitude(), loc.getLongitude()), latlng);
+                new LatLonPoint(correctLat, correctLon), latlng);
         // 创建自驾车的查询条件
         RouteSearch.DriveRouteQuery driveRouteQuery = new RouteSearch
                 .DriveRouteQuery(ft // 定义道路规划的起始点
